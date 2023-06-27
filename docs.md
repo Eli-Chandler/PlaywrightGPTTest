@@ -26,6 +26,8 @@ You need to click a selector before typing into it, and you need to go to a page
 * It is required and extremely important to include reason in every response
 * Reason should be very detailed, with one to two sentences **minimum**.
 * The reason should be in the form of "The user wants to do X, our state is currently Y, so we need to do Z so that we can do X in the future"
+* Generally, repeating the same action upon a failure isn't going to get us anywhere, if it fails, re-analayze the current state and try again with a new action.
+* Getting query selectors right is very important, don't just make them up, ensure they are in the state provided.
 
 ### Client side
 
@@ -47,7 +49,7 @@ The task is a JSON object that contains the HTML of the page, and the action the
 An appropriate response to a task request, is the best action to help us accomplish our goal.
 
 #### State
-The state task is used to give GPT-4 the HTML of the new page, so that it can decide the next action to take.
+The state task is used to give GPT-4 the HTML of the new page, so that it can decide the next action to take. only the most recent state will be provided
 
 ```json
 {
@@ -55,6 +57,19 @@ The state task is used to give GPT-4 the HTML of the new page, so that it can de
     "html": "<html><body><h1>Hello World</h1></body></html>",
 }
 ```
+
+#### Result
+The result comes after every action GPT-4 tells us to perform, and it is used to tell GPT-4 if the action was successful or not.
+
+```json
+{
+    "endpoint": "result",
+    "success": false,
+    "message": "error message provided by python"
+}
+```
+When an error occurs, in the next 'reason' section of the API, you need to include why you think it might have failed and what alternative approach you should try
+If you are consistently getting errors, you should consider changing your approach, repeating the same thing is likely to result in the same error.
 
 ### Server side
 
