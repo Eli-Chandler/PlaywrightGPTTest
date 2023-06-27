@@ -42,7 +42,8 @@ class GPTBrowser:
         self.get_response(messages)
 
     def get_response(self, messages):
-        response = openai.ChatCompletion.create(model='gpt-3.5-turbo-16k', messages=messages)
+        response = openai.ChatCompletion.create(model='gpt-3.5-turbo-16k', messages=messages + [self.get_state()])
+
 
         action = response['choices'][0]['message']['content']
         print(action)
@@ -52,16 +53,35 @@ class GPTBrowser:
         if action['endpoint'] == 'finish':
             return
         else:
-            self.handlers[action['endpoint']](action)
+            try:
+                self.handlers[action['endpoint']](action)
+                print('Success')
+                messages.append(self.create_message(
+                    endpoint = 'result',
+                    success = True
+                ))
+            except Exception as e:
+                print('Error', e)
+                messages.append(self.create_message(
+                    endpoint = 'result',
+                    success = False,
+                    error = str(e)
+                ))
+
 
         time.sleep(3) # give page time to load
-        messages.append(self.get_state())
         self.get_response(messages)
+
+    def create_message(self, **kwargs):
+        return {
+            "role": "user",
+            "content": str(kwargs)
+        }
 
     def get_state(self):
         state = str({
             'endpoint': 'state',
-            'html': self.page.content()
+            'html': self.page.content()[:20000]
         })
 
         return {
@@ -69,28 +89,20 @@ class GPTBrowser:
             "content": state
         }
 
-
-
-
-
     def goto(self, response):
         url = response['url']
         self.page.goto(url)
 
     def click(self, response):
         selector = response['selector'].strip().replace(':', '\\:')
-        print(selector)
-        self.page.click(selector)
-        #self.page.evaluate(f"document.querySelector('{selector}').click()'")
+        self.page.click(selector, timeout=500)
 
     def type(self, response):
         selector = response['selector'].strip().replace(':', '\\:')
         text = response['text'].strip()
-
-        #self.page.evaluate(f"document.querySelector('{selector}').value = '{text}'")
-        self.page.type(selector, text)
+        self.page.type(selector, text, timeout=500)
 
 
 g = GPTBrowser()
 
-g.create_task(input('What task would you like the browser to perform?: '))
+g.create_task(input('What task would you like to do?: '))
